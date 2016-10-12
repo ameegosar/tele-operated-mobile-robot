@@ -1,0 +1,205 @@
+int Rir = A2;
+int Lir = A6;
+int Cir = A4;
+
+int ML1 = 31;
+int ML2 = 32;
+int MR1 = 41;
+int MR2 = 42;
+int ENL = 5;
+int ENR = 6;
+
+int FwdSpeed = 200;
+int BkSpeed = 150;
+int RotSpeed = 160;
+
+char newmode = 's';
+char oldmode = 's';
+
+char buff[4];
+char ch;
+int id = 0;
+boolean start = false;
+boolean stop1 = false;
+boolean oscflag = false;
+
+int r_val,l_val,c_val;
+int high_val=200;
+
+/////////////////////////////////////////////////////
+void setup()
+{
+  Serial.begin(9600);
+  pinMode(ML1,OUTPUT);
+  pinMode(ML2,OUTPUT);
+   pinMode(MR1,OUTPUT);
+   pinMode(MR2,OUTPUT);
+}
+
+///////////////////////////////////////////////////
+void loop()
+{
+  if(Serial.available() > 0)
+    {
+      ch = Serial.read();
+      if(ch == '\b')
+        start = true;
+      if(start && ch == '\r') 
+        stop1 = true;
+      if(start)
+        buff[id++] = ch;
+      if(stop1) 
+        ProcessBuff();
+      if(stop1 || id > 3)
+        {
+          id = 0;
+          start = false; 
+          stop1 = false;
+        } 
+    }
+ if(newmode == 'f') {oldmode = newmode; wander();}
+ if (newmode != oldmode)
+ {
+   oldmode = newmode;
+     switch(newmode)
+     {
+       case 'b':
+       backward(BkSpeed);
+       break;
+       case 'a':
+       anticlock(RotSpeed);
+       break;
+       case 'c':
+       clock(RotSpeed);
+       break; 
+       case 's':
+       stoprobot();
+       break; 
+       default:
+       break;
+   }
+ }
+}
+
+///////////////////////////////////////////////////////
+void wander()
+{
+  sensorval();  
+  move1();  
+}
+
+void sensorval()
+{
+  r_val = analogRead(Rir);
+  l_val = analogRead(Lir);
+  c_val = analogRead(Cir);
+  
+  r_val = 2076/(r_val -11);
+  l_val = 2076/(l_val - 11);
+  c_val = 2076/(c_val - 11);
+  
+  if( r_val < 5 || r_val > 29) r_val = high_val;
+  if( l_val < 5 || l_val > 29) l_val = high_val;
+  if( c_val < 5 || c_val > 29) c_val = high_val;
+}
+
+  
+void move1()
+{
+  if((r_val==high_val) && (l_val==high_val) && (c_val==high_val)) {oscflag = false; forward(FwdSpeed);}
+    else if(r_val > l_val && !oscflag) {oscflag = true; clock(RotSpeed);}
+      //else if(l_val > r_val) anticlock(RotSpeed);   
+      else if (!oscflag) { oscflag = true; anticlock(RotSpeed);}
+}
+
+
+/////////////////////////
+void forward(int s)
+{  
+  leftforward(s);
+  rightforward(s);
+}
+
+/////////////////////////////
+void backward(int s)
+{  
+   leftbackward(s);
+  rightbackward(s);
+}
+
+///////////////////////////
+void anticlock(int s)
+{
+  leftbackward(s);
+  rightforward(s);
+}
+
+//////////////////////////
+void clock(int s)
+{
+  leftforward(s);  
+  rightbackward(s);
+}
+
+/////////////////////////////////
+void leftforward(int s)
+{
+  digitalWrite(ML1,HIGH);
+  digitalWrite(ML2,LOW);
+  analogWrite(ENL,s);
+}
+
+//////////////////////////////////
+void leftbackward(int s)
+{
+  digitalWrite(ML1,LOW);
+  digitalWrite(ML2,HIGH);
+  analogWrite(ENL,s);
+ 
+}
+
+/////////////////////////////////
+void rightbackward(int s)
+{
+   digitalWrite(MR1,LOW);
+  digitalWrite(MR2,HIGH);
+  analogWrite(ENR,s);
+}
+
+//////////////////////////////
+void rightforward(int s)
+{
+   digitalWrite(MR1,HIGH);
+  digitalWrite(MR2,LOW);
+  analogWrite(ENR,s);
+}
+
+/////////////////////////////
+void stoprobot()
+{
+  analogWrite(ENL,255);
+  analogWrite(ENR,255);
+  digitalWrite(ML1,HIGH);
+  digitalWrite(ML2,HIGH);
+  digitalWrite(MR1,HIGH);
+  digitalWrite(MR2,HIGH);
+}
+
+////////////////////////////////////
+void ProcessBuff()
+{
+  if(buff[1] == 'f' && buff[2] == 'f')
+    newmode = 'f';
+  else if(buff[1] == 'b' && buff[2] == 'b')
+    newmode = 'b';
+  else if(buff[1] == 'c' && buff[2] == 'c')
+   newmode = 'c';
+  else if(buff[1] == 'a' && buff[2] == 'a')
+    newmode = 'a';
+  else if(buff[1] == 's' && buff[2] == 's')
+    newmode = 's';
+}
+
+  
+   
+   
